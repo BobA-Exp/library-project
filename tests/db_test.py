@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -130,3 +131,49 @@ def test_search_requires_a_criterion(tmp_path: Path) -> None:
     with make_manager(tmp_path) as database:
         with pytest.raises(DataValidationError):
             database.search_works()
+
+
+def test_search_rejects_an_invalid_isbn_checksum(tmp_path: Path) -> None:
+    with make_manager(tmp_path) as database:
+        database.upsert_work(
+            "OL1W",
+            "The Hobbit",
+            isbn_list=["9780140328722", "978-0-14-032872-1"],
+        )
+        stored = database.get_work("OL1W")
+        with pytest.raises(DataValidationError):
+            database.search_works(isbn="9780140328722")
+
+    assert stored is not None
+    assert stored["isbn_list"] == ["9780140328721"]
+
+
+def test_existing_database_gains_languages_column(tmp_path: Path) -> None:
+    path = tmp_path / "library.db"
+    connection = sqlite3.connect(path)
+    connection.execute(
+        """
+        CREATE TABLE works (
+            work_key TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            first_publish_year INTEGER,
+            isbn_list TEXT NOT NULL,
+            author_keys TEXT NOT NULL,
+            author_names TEXT NOT NULL,
+            subjects TEXT NOT NULL,
+            cover_id INTEGER,
+            raw_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    with make_manager(tmp_path) as database:
+        database.upsert_work("OL1W", "The Hobbit", languages=["eng"])
+        work = database.get_work("OL1W")
+
+    assert work is not None
+    assert work["languages"] == ["eng"]

@@ -2,7 +2,6 @@
 
 import json
 import logging
-import re
 import sqlite3
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
@@ -11,10 +10,9 @@ from typing import Any
 
 from config import Settings, get_settings
 from exceptions import DataValidationError
+from processing.cleaner import normalize_isbn
 
 logger = logging.getLogger(__name__)
-
-_ISBN_PATTERN = re.compile(r"[^0-9Xx]")
 
 
 class DatabaseManager:
@@ -48,6 +46,7 @@ class DatabaseManager:
         author_keys: Sequence[str] | None = None,
         author_names: Sequence[str] | None = None,
         subjects: Sequence[str] | None = None,
+        languages: Sequence[str] | None = None,
         cover_id: int | None = None,
         raw_json: Mapping[str, Any] | None = None,
     ) -> None:
@@ -61,6 +60,7 @@ class DatabaseManager:
                 author_keys=author_keys,
                 author_names=author_names,
                 subjects=subjects,
+                languages=languages,
                 cover_id=cover_id,
                 raw_json=raw_json,
             )
@@ -117,9 +117,9 @@ class DatabaseManager:
         """Find catalog works by title, author name, or ISBN."""
         title_text = _optional_text(title)
         author_text = _optional_text(author)
-        isbn_text = _normalize_isbn(isbn) if isbn and isbn.strip() else None
+        isbn_text = normalize_isbn(isbn) if isbn and isbn.strip() else None
         if isbn and isbn.strip() and not isbn_text:
-            raise DataValidationError("isbn is required")
+            raise DataValidationError("isbn checksum is invalid")
         if not any((title_text, author_text, isbn_text)):
             raise DataValidationError("A title, author, or ISBN is required")
 
@@ -245,6 +245,7 @@ class DatabaseManager:
                     author_keys TEXT NOT NULL,
                     author_names TEXT NOT NULL,
                     subjects TEXT NOT NULL,
+                    languages TEXT NOT NULL DEFAULT '[]',
                     cover_id INTEGER,
                     raw_json TEXT NOT NULL,
                     updated_at TEXT NOT NULL
@@ -281,6 +282,14 @@ class DatabaseManager:
                     ON api_cache(expires_at);
                 """
             )
+            columns = {
+                row["name"]
+                for row in self._connection.execute("PRAGMA table_info(works)")
+            }
+            if "languages" not in columns:
+                self._connection.execute(
+                    "ALTER TABLE works ADD COLUMN languages TEXT NOT NULL DEFAULT '[]'"
+                )
 
     def _upsert_work(
         self,
@@ -292,6 +301,7 @@ class DatabaseManager:
         author_keys: Sequence[str] | None = None,
         author_names: Sequence[str] | None = None,
         subjects: Sequence[str] | None = None,
+        languages: Sequence[str] | None = None,
         cover_id: int | None = None,
         raw_json: Mapping[str, Any] | None = None,
     ) -> None:
@@ -303,9 +313,10 @@ class DatabaseManager:
             """
             INSERT INTO works (
                 work_key, title, description, first_publish_year, isbn_list,
-                author_keys, author_names, subjects, cover_id, raw_json, updated_at
+                author_keys, author_names, subjects, languages, cover_id,
+                raw_json, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(work_key) DO UPDATE SET
                 title = excluded.title,
                 description = excluded.description,
@@ -314,6 +325,7 @@ class DatabaseManager:
                 author_keys = excluded.author_keys,
                 author_names = excluded.author_names,
                 subjects = excluded.subjects,
+                languages = excluded.languages,
                 cover_id = excluded.cover_id,
                 raw_json = excluded.raw_json,
                 updated_at = excluded.updated_at
@@ -325,7 +337,9 @@ class DatabaseManager:
                 first_publish_year,
                 json.dumps(
                     _string_list(
-                        isbn_list, label="isbn_list", normalize=_normalize_isbn
+                        isbn_list,
+                        label="isbn_list",
+                        normalize=lambda value: normalize_isbn(value) or "",
                     )
                 ),
                 json.dumps(
@@ -336,6 +350,7 @@ class DatabaseManager:
                 ),
                 json.dumps(_string_list(author_names, label="author_names")),
                 json.dumps(_string_list(subjects, label="subjects")),
+                json.dumps(_string_list(languages, label="languages")),
                 cover_id,
                 json.dumps(dict(raw_json or {})),
                 _format_timestamp(_now()),
@@ -428,10 +443,6 @@ def _optional_text(value: str | None) -> str | None:
     return text or None
 
 
-def _normalize_isbn(value: str) -> str:
-    return _ISBN_PATTERN.sub("", value).upper()
-
-
 def _string_list(
     values: Sequence[str] | None,
     *,
@@ -464,6 +475,7 @@ def _work_from_row(row: sqlite3.Row) -> dict[str, Any]:
         "author_keys": json.loads(row["author_keys"]),
         "author_names": json.loads(row["author_names"]),
         "subjects": json.loads(row["subjects"]),
+        "languages": json.loads(row["languages"]) if "languages" in row.keys() else [],
         "cover_id": row["cover_id"],
         "raw_json": json.loads(row["raw_json"]),
         "updated_at": row["updated_at"],
