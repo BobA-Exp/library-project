@@ -11,6 +11,10 @@ wheels/
 #logs
 *.log
 
+# Generated reports
+data/outputs/*
+!data/outputs/.gitkeep
+
 # Virtual environments
 .env
 .venv
