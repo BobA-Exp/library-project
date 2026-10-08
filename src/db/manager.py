@@ -107,6 +107,18 @@ class DatabaseManager:
             return None
         return _author_from_row(row)
 
+    def list_works(self) -> list[dict[str, Any]]:
+        rows = self._connection.execute(
+            "SELECT * FROM works ORDER BY title, work_key"
+        ).fetchall()
+        return [_work_from_row(row) for row in rows]
+
+    def list_authors(self) -> list[dict[str, Any]]:
+        rows = self._connection.execute(
+            "SELECT * FROM authors ORDER BY name, author_key"
+        ).fetchall()
+        return [_author_from_row(row) for row in rows]
+
     def search_works(
         self,
         *,
