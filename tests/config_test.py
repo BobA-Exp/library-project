@@ -12,6 +12,10 @@ _SETTINGS_ENV_VARS = (
     "REPORT_OUTPUT_DIR",
     "LOG_LEVEL",
     "LOG_FILE",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "LIBRARY_INSECURE_SSL",
+    "MAX_RETRIES",
 )
 
 
@@ -32,3 +36,12 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> N
     assert isinstance(settings, Settings)
     assert settings.openlibrary_base_url == "https://openlibrary.org"
     assert settings.report_output_dir == Path("data/outputs")
+    assert settings.library_insecure_ssl is False
+    assert settings.max_retries == 3
+    assert settings.https_proxy is None
+
+
+def test_insecure_ssl_flag_parses_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LIBRARY_INSECURE_SSL", "1")
+    settings = Settings(_env_file=None)
+    assert settings.library_insecure_ssl is True

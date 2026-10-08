@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     report_output_dir: Path = Path("data/outputs")
     log_level: str = "INFO"
     log_file: Path = Path("logs/library.log")
+    http_proxy: str | None = None
+    https_proxy: str | None = None
+    library_insecure_ssl: bool = False
+    max_retries: int = 3
 
 
 @lru_cache
