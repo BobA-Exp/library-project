@@ -1,6 +1,6 @@
 [project]
 name = "library-project"
-version = "0.1.0"
+version = "1.0.0"
 description = "CLI automation tool for Open Library catalog research, caching, and reporting."
 readme = "README.md"
 requires-python = ">=3.13"
