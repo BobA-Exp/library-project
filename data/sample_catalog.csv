@@ -1,0 +1,8 @@
+work_key,title,author_names,author_keys,isbn,subjects,languages,first_publish_year,description,notes
+OL1W,  The Hobbit!! ,J. R. R. Tolkien,OL26320A,978-0-14-032872-1,Fantasy,eng,1937,A fantasy novel,
+OL1W,the hobbit,J. R. R. Tolkien,OL26320A,9780140328721,Fantasy,eng,1937,,
+,   ,Nobody,OL0A,9780140328721,Mystery,eng,2000,,
+OL2W,Dune,Frank Herbert,OL2162283A,978-0-441-17271-9,Science Fiction,eng,1965,Desert planet,
+OL3W,Bad Checksum Book,Ada Lovelace,OL9A,9780140328722,Fiction,eng,1999,,
+OL4W,Les Misérables,Victor Hugo,OL123A,,Classics,fre,1862,A novel,
+OL5W,Notes Book,Grace Hopper,OL8A,,Computing,eng,"September 21, 1951",,See ISBN 0-306-40615-2

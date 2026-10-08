@@ -11,6 +11,18 @@ wheels/
 #logs
 *.log
 
+# Generated reports
+data/outputs/*
+!data/outputs/.gitkeep
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
 # Virtual environments
 .env
 .venv
+
+#project details
+*.pdf

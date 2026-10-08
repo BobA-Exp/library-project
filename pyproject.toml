@@ -1,16 +1,30 @@
 [project]
 name = "library-project"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "CLI automation tool for Open Library catalog research, caching, and reporting."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28.1",
     "openpyxl>=3.1.5",
     "pandas>=3.0.6",
+    "pydantic-settings>=2.15.0",
     "pytest>=9.1.1",
+    "pytest-asyncio",
     "pytest-mock",
-    "pytestasyncio",
     "python-dotenv",
     "ruff",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
